@@ -1,26 +1,37 @@
 'server-only';
 
+import { generateEmbedding, generateEmbeddings } from '@/ai/embedding';
 import { genSaltSync, hashSync } from 'bcrypt-ts';
-import { and, asc, desc, eq, gt } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  cosineDistance,
+  desc,
+  eq,
+  gt,
+  inArray,
+  sql,
+} from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
-
 import {
-  user,
   chat,
-  User,
   document,
-  Suggestion,
-  suggestion,
+  embedding,
   Message,
   message,
+  resource,
+  Suggestion,
+  suggestion,
+  user,
+  User,
   vote,
 } from './schema';
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
 // https://authjs.dev/reference/adapter/drizzle
-let client = postgres(`${process.env.POSTGRES_URL!}?sslmode=require`);
+let client = postgres(`${process.env.POSTGRES_URL!}`);
 let db = drizzle(client);
 
 export async function getUser(email: string): Promise<Array<User>> {
@@ -275,6 +286,122 @@ export async function getSuggestionsByDocumentId({
     console.error(
       'Failed to get suggestions by document version from database'
     );
+    throw error;
+  }
+}
+
+export async function createResource({
+  name,
+  userId,
+  metadata,
+}: {
+  name: string;
+  userId: string;
+  metadata: Record<string, any>;
+}) {
+  try {
+    return await db
+      .insert(resource)
+      .values({ name, userId, metadata })
+      .returning({
+        id: resource.id,
+      });
+  } catch (error) {
+    console.error('Failed to create resource in database');
+    throw error;
+  }
+}
+
+export async function insertEmbeddings({
+  resourceId,
+  embeddings,
+}: {
+  resourceId: string;
+  embeddings: Awaited<ReturnType<typeof generateEmbeddings>>;
+}) {
+  try {
+    return await db
+      .insert(embedding)
+      .values(embeddings.map((e) => ({ resourceId, ...e })));
+  } catch (error) {
+    console.error('Failed to create embeddings in database');
+    throw error;
+  }
+}
+
+export async function getUserResources({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(resource)
+      .where(eq(resource.userId, userId))
+      .orderBy(desc(resource));
+  } catch (error) {
+    console.error('Failed to get user resources from database');
+    throw error;
+  }
+}
+
+export async function getUserResource({
+  userId,
+  resourceIds,
+}: {
+  userId: string;
+  resourceIds: string[];
+}) {
+  try {
+    return await db
+      .select()
+      .from(resource)
+      .where(
+        and(eq(resource.userId, userId), inArray(resource.id, resourceIds))
+      );
+  } catch (error) {
+    console.error('Failed to get user resources from database');
+    throw error;
+  }
+}
+
+export async function getSimilarResults(
+  query: string,
+  userId: string,
+  selectedFiles: string[]
+) {
+  if (!selectedFiles.length) {
+    return [];
+  }
+
+  try {
+    const queryEmbedding = await generateEmbedding(query);
+    const similarity = sql<number>`1 - (${cosineDistance(
+      embedding.embedding,
+      queryEmbedding
+    )})`;
+
+    const results = await db
+      .select({
+        resourceId: embedding.resourceId,
+        content: embedding.content,
+        source: resource.name,
+        similarity,
+      })
+      .from(embedding)
+      .leftJoin(resource, eq(embedding.resourceId, resource.id))
+      .where(
+        and(
+          eq(resource.userId, userId),
+          gt(similarity, 0.2),
+          inArray(embedding.resourceId, selectedFiles)
+        )
+      )
+      .orderBy((t) => desc(t.similarity))
+      .limit(5);
+
+    debugger;
+
+    return results;
+  } catch (error) {
+    console.error('Failed to get similar results from database');
     throw error;
   }
 }

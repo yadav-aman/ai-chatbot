@@ -26,7 +26,6 @@ import {
   StopIcon,
   SummarizeIcon,
 } from './icons';
-import { Button } from '../ui/button';
 
 type ToolProps = {
   type: 'final-polish' | 'request-suggestions' | 'adjust-reading-level';

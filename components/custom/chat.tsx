@@ -1,18 +1,18 @@
 'use client';
 
-import { Attachment, Message } from 'ai';
-import { useChat } from 'ai/react';
-import { AnimatePresence } from 'framer-motion';
-import { useState } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
-import { useWindowSize } from 'usehooks-ts';
-
 import { ChatHeader } from '@/components/custom/chat-header';
+import { Files } from '@/components/custom/files';
 import { PreviewMessage, ThinkingMessage } from '@/components/custom/message';
 import { useScrollToBottom } from '@/components/custom/use-scroll-to-bottom';
 import { Vote } from '@/db/schema';
 import { fetcher } from '@/lib/utils';
-
+import { Attachment, Message } from 'ai';
+import { useChat } from 'ai/react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { FileIcon } from 'lucide-react';
+import { useState } from 'react';
+import useSWR, { useSWRConfig } from 'swr';
+import { useWindowSize } from 'usehooks-ts';
 import { Block, UIBlock } from './block';
 import { BlockStreamHandler } from './block-stream-handler';
 import { MultimodalInput } from './multimodal-input';
@@ -28,6 +28,8 @@ export function Chat({
   selectedModelId: string;
 }) {
   const { mutate } = useSWRConfig();
+  const [isFilesVisible, setIsFilesVisible] = useState(false);
+  const [selectedFileIds, setSelectedFileIds] = useState<Array<string>>([]);
 
   const {
     messages,
@@ -40,7 +42,7 @@ export function Chat({
     stop,
     data: streamingData,
   } = useChat({
-    body: { id, modelId: selectedModelId },
+    body: { id, modelId: selectedModelId, selectedFileIds },
     initialMessages,
     onFinish: () => {
       mutate('/api/history');
@@ -125,6 +127,24 @@ export function Chat({
             setMessages={setMessages}
             append={append}
           />
+          <div className="flex flex-row gap-2 pb-1 items-end">
+            <div
+              className="relative text-sm bg-zinc-100 rounded-lg size-9 shrink-0 flex flex-row items-center justify-center cursor-pointer hover:bg-zinc-200 dark:text-zinc-50 dark:bg-zinc-700 dark:hover:bg-zinc-800"
+              onClick={() => {
+                setIsFilesVisible(!isFilesVisible);
+              }}
+            >
+              <FileIcon />
+              <motion.div
+                className="absolute text-xs -top-2 -right-2 bg-blue-500 size-5 rounded-full flex flex-row justify-center items-center border-2 dark:border-zinc-900 border-white text-blue-50"
+                initial={{ opacity: 0, scale: 0.5 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.5 }}
+              >
+                {selectedFileIds?.length}
+              </motion.div>
+            </div>
+          </div>
         </form>
       </div>
 
@@ -145,6 +165,16 @@ export function Chat({
             messages={messages}
             setMessages={setMessages}
             votes={votes}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {isFilesVisible && (
+          <Files
+            setIsFilesVisible={setIsFilesVisible}
+            selectedFileIds={selectedFileIds}
+            setSelectedFileIds={setSelectedFileIds}
           />
         )}
       </AnimatePresence>

@@ -4,7 +4,7 @@ export const blocksPrompt = `
   This is a guide for using blocks tools: \`createDocument\` and \`updateDocument\`, which render content on a blocks beside the conversation.
 
   **When to use \`createDocument\`:**
-  - For substantial content (>10 lines)
+  - For substantial content (>30 lines)
   - For content users will likely save/reuse (emails, code, essays, etc.)
   - When explicitly requested to create a document
 
@@ -19,6 +19,8 @@ export const blocksPrompt = `
   - Follow user instructions for which parts to modify
 
   Do not update document right after creating it. Wait for user feedback or request to update it.
+  Don't forget the instructions for each tool. They are there to help you use the tools effectively.
+  The user just cares about the result, not the process. Keep your responses concise and helpful.
   `;
 
 export const regularPrompt =

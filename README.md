@@ -1,10 +1,8 @@
-<a href="https://chat.vercel.ai/">
-  <img alt="Next.js 14 and App Router-ready AI chatbot." src="app/(chat)/opengraph-image.png">
-  <h1 align="center">Next.js AI Chatbot</h1>
-</a>
+<h1 align="center">Next.js AI Knowledge-base chatbot</h1>
 
 <p align="center">
-  An Open-Source AI Chatbot Template Built With Next.js and the AI SDK by Vercel.
+  An fully local Open-Source AI knowledge made with Next.js and the AI SDK.
+  Powered by Ollama and Postgres.
 </p>
 
 <p align="center">
@@ -23,39 +21,66 @@
 - [AI SDK](https://sdk.vercel.ai/docs)
   - Unified API for generating text, structured objects, and tool calls with LLMs
   - Hooks for building dynamic chat and generative user interfaces
-  - Supports OpenAI (default), Anthropic, Cohere, and other model providers
 - [shadcn/ui](https://ui.shadcn.com)
   - Styling with [Tailwind CSS](https://tailwindcss.com)
   - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
 - Data Persistence
-  - [Vercel Postgres powered by Neon](https://vercel.com/storage/postgres) for saving chat history and user data
-  - [Vercel Blob](https://vercel.com/storage/blob) for efficient file storage
+  - [Postgres](https://github.com/timescale/pgai/blob/main/docs/vectorizer-quick-start.md) for saving chat history and user data
+  - [Min.io](https://min.io/docs/minio/container/index.html) for efficient file storage
 - [NextAuth.js](https://github.com/nextauthjs/next-auth)
   - Simple and secure authentication
+- [Ollama](https://ollama.com/) for AI model management
+  - Easily switch between different AI models and providers
+- [pgvector](https://github.com/pgvector/pgvector) for vector similarity search
+  - Efficiently store embeddings for similarity search
+- [pgvectorscale](https://github.com/timescale/pgvectorscale) for scaling vector similarity search
+  - Query embeddings for RAG
 
 ## Model Providers
 
-This template ships with OpenAI `gpt-4o` as the default. However, with the [AI SDK](https://sdk.vercel.ai/docs), you can switch LLM providers to [OpenAI](https://openai.com), [Anthropic](https://anthropic.com), [Cohere](https://cohere.com/), and [many more](https://sdk.vercel.ai/providers/ai-sdk-providers) with just a few lines of code.
-
-## Deploy Your Own
-
-You can deploy your own version of the Next.js AI Chatbot to Vercel with one click:
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fvercel%2Fai-chatbot&env=AUTH_SECRET,OPENAI_API_KEY&envDescription=Learn%20more%20about%20how%20to%20get%20the%20API%20Keys%20for%20the%20application&envLink=https%3A%2F%2Fgithub.com%2Fvercel%2Fai-chatbot%2Fblob%2Fmain%2F.env.example&demo-title=AI%20Chatbot&demo-description=An%20Open-Source%20AI%20Chatbot%20Template%20Built%20With%20Next.js%20and%20the%20AI%20SDK%20by%20Vercel.&demo-url=https%3A%2F%2Fchat.vercel.ai&stores=[{%22type%22:%22postgres%22},{%22type%22:%22blob%22}])
+- [Llama3.1 8B](https://ollama.com/library/llama3.1) (Meta) powers the chatbot 
+- [mxbai-embed-large](https://ollama.com/library/mxbai-embed-large) (mixedbread.ai) for embeddings
 
 ## Running locally
 
-You will need to use the environment variables [defined in `.env.example`](.env.example) to run Next.js AI Chatbot. It's recommended you use [Vercel Environment Variables](https://vercel.com/docs/projects/environment-variables) for this, but a `.env` file is all that is necessary.
+You will need to use the environment variables [defined in `.env.example`](.env.example) to run Next.js AI Chatbot.
 
-> Note: You should not commit your `.env` file or it will expose secrets that will allow others to control access to your various OpenAI and authentication provider accounts.
+Create a `.env.local` file in the root of the project and add the environment variables as defined in `.env.example`.
 
-1. Install Vercel CLI: `npm i -g vercel`
-2. Link local instance with Vercel and GitHub accounts (creates `.vercel` directory): `vercel link`
-3. Download your environment variables: `vercel env pull`
+> Note: You should not commit your `.env.local` file or it will expose secrets that will allow others to control access to your various OpenAI and authentication provider accounts.
+
+1. Download Ollama form the [Ollama website](https://ollama.com/download) and install it.
+2. Pull `llama3.1` and `mxbai-embed-large` models from the Ollama library.
+3. Create `.env.local` file in the root of the project.
+
+> Note: For postgres and minio, you can use docker-compose to run them locally.<br>
+> Minio will be running on [localhost:9000](http://localhost:9000/). and Postgres will be running on [localhost:5434](http://localhost:5432/).<br>
+> You can use [localhost:9001](http://localhost:9001/) to access the Minio web interface.
+
+4. Login to minio web interface and create a access key and secret key
+5. Attach read and write policy to the access key and save it
+```json
+{
+ "Version": "2012-10-17",
+ "Statement": [
+  {
+   "Effect": "Allow",
+   "Action": [
+    "s3:*"
+   ],
+   "Resource": [
+    "arn:aws:s3:::*"
+   ]
+  }
+ ]
+}
+```
+6. Run the following commands:
 
 ```bash
 pnpm install
+pnpm migrate:db
 pnpm dev
 ```
 
-Your app template should now be running on [localhost:3000](http://localhost:3000/).
+Your app should now be running on [localhost:3000](http://localhost:3000/).

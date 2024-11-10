@@ -1,14 +1,17 @@
 import { InferSelectModel } from 'drizzle-orm';
 import {
-  pgTable,
-  varchar,
-  timestamp,
-  json,
-  uuid,
-  text,
-  primaryKey,
-  foreignKey,
   boolean,
+  foreignKey,
+  index,
+  json,
+  jsonb,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uuid,
+  varchar,
+  vector,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -102,8 +105,40 @@ export const suggestion = pgTable(
     documentRef: foreignKey({
       columns: [table.documentId, table.documentCreatedAt],
       foreignColumns: [document.id, document.createdAt],
+      name: 'Suggestion_documentId_documentCreatedAt_fk',
     }),
   })
+);
+
+export const resource = pgTable('resource', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: varchar('name').notNull(),
+  metadata: jsonb(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+});
+
+export const embedding = pgTable(
+  'embedding',
+  {
+    id: uuid('id').primaryKey().notNull().defaultRandom(),
+    resourceId: uuid('resourceId')
+      .references(() => resource.id, {
+        onDelete: 'cascade',
+      })
+      .notNull(),
+    content: text(),
+    embedding: vector('embedding', { dimensions: 1024 }),
+  },
+  (table) => {
+    return {
+      document_embedding_idx: index('document_embedding_idx').using(
+        'hnsw',
+        table.embedding.op('vector_cosine_ops')
+      ),
+    };
+  }
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;

@@ -88,6 +88,8 @@ export const PreviewMessage = ({
                           block={block}
                           setBlock={setBlock}
                         />
+                      ) : toolName === 'getContext' ? (
+                        <Markdown>Retrieved context</Markdown>
                       ) : (
                         <pre>{JSON.stringify(result, null, 2)}</pre>
                       )}
